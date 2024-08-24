@@ -1,6 +1,11 @@
 use std::env;
 use axum::routing::get;
 
+#[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
+struct CreateSnap {
+    message: String,
+}
 #[tokio::main]
 pub async fn main() {
     let app = axum::Router::new()
@@ -35,7 +40,9 @@ async fn snaps_get_handler()
     (axum::http::StatusCode::OK, "A list of snaps\n".to_string())
 }
 
-async fn snaps_post_handler()
--> (axum::http::StatusCode, String) {
+async fn snaps_post_handler(
+    axum::extract::Json(payload): axum::extract::Json<CreateSnap>
+) -> (axum::http::StatusCode, String) {
+    dbg!(payload);
     (axum::http::StatusCode::CREATED, "Snap created successfully\n".to_string())
 }
