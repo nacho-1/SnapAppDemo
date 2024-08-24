@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+# Web framework that focuses on ergonomics and modularity.
+axum = "~0.7.0"
+
+# Event-driven, non-blocking I/O platform.
+tokio = { version = "~1.39.3", features = ["full"] }
+
+
