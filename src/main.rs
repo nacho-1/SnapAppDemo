@@ -6,6 +6,18 @@ use axum::routing::get;
 struct CreateSnap {
     message: String,
 }
+
+#[derive(Debug, serde::Serialize)]
+struct SnapCreated {
+    id: String,
+    message: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ApiResponse<T: serde::Serialize> {
+    data: T,
+}
+
 #[tokio::main]
 pub async fn main() {
     let app = axum::Router::new()
@@ -42,7 +54,9 @@ async fn snaps_get_handler()
 
 async fn snaps_post_handler(
     axum::extract::Json(payload): axum::extract::Json<CreateSnap>
-) -> (axum::http::StatusCode, String) {
-    dbg!(payload);
-    (axum::http::StatusCode::CREATED, "Snap created successfully\n".to_string())
+) -> (axum::http::StatusCode, axum::extract::Json<ApiResponse<SnapCreated>>) {
+    dbg!(&payload);
+    let payload = SnapCreated {id: "abc".to_string(), message: payload.message};
+    let response = ApiResponse { data: payload };
+    (axum::http::StatusCode::CREATED, response.into())
 }
