@@ -45,6 +45,8 @@ async fn fallback_handler(
     (axum::http::StatusCode::NOT_FOUND, format!("No route {}", uri))
 }
 
+/// axum handler for "GET /snaps" which return a list
+/// of snaps in JSON format.
 async fn snaps_get_handler<S: SnapAppState>(
     State(repo): State<S>,
 ) -> (axum::http::StatusCode, axum::extract::Json<ApiResponse<Vec<SnapInfo>>>) {
@@ -61,6 +63,9 @@ async fn snaps_get_handler<S: SnapAppState>(
     (axum::http::StatusCode::OK, response.into())
 }
 
+/// axum handler for "POST /snaps" which creates a new
+/// snap in the repository. Will return some info on the
+/// new snap alongside the status code.
 async fn snaps_post_handler<S: SnapAppState>(
     State(mut repo): State<S>,
     axum::extract::Json(payload): axum::extract::Json<CreateSnap>,

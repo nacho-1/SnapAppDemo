@@ -2,12 +2,22 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::models::Snap;
 
+/// Trait for the application state.
+/// Used with the axum router function 'with_state()'.
 #[allow(dead_code)]
 pub trait SnapAppState {
+    /// Create a snap with a message.
+    /// Snap timestamp will be the time of creation.
+    /// ID of the snap will be random.
+    /// Returns a copy of the snap on success,
+    /// or an error if it can't create it.
     fn post(&mut self, message: String) -> Result<Snap, SnapCreationError>;
 
+    /// Return a vector with the copy of all snaps
+    /// at the time, ordered from the most recent to the oldest.
     fn get(&self) -> Vec<Snap>;
 
+    /// Return the ammount of snaps currently.
     fn snap_count(&self) -> usize;
 }
 
@@ -16,12 +26,14 @@ pub enum SnapCreationError {
     IdCollisionError,
 }
 
+/// Simple repository for snaps in mememory.
 #[derive(Clone)]
 pub struct MockSnapRepository {
     snaps_mtx: Arc<Mutex<HashMap<String, Snap>>>,
 }
 
 impl MockSnapRepository {
+    /// Create a new empty repository.
     pub fn new() -> MockSnapRepository {
         MockSnapRepository {
             snaps_mtx: Arc::new(Mutex::new(HashMap::new())),
