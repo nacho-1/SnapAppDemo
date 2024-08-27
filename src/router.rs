@@ -1,4 +1,6 @@
 use axum::routing::get;
+use axum::extract::State;
+use crate::state::SnapAppState;
 
 #[derive(Debug, serde::Serialize)]
 struct ApiResponse<T: serde::Serialize> {
@@ -17,15 +19,21 @@ struct SnapCreated {
     message: String,
 }
 
-pub fn get_router() -> axum::Router {
+#[derive(Debug, serde::Serialize)]
+struct SnapInfo {
+    id: String,
+    message: String,
+}
+
+pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Router<S> {
     axum::Router::new()
         .fallback(
             fallback_handler
         )
         .route(
             "/snaps",
-            get(snaps_get_handler)
-                .post(snaps_post_handler)
+            get(snaps_get_handler::<S>)
+                .post(snaps_post_handler::<S>)
         )
 }
 
@@ -37,16 +45,28 @@ async fn fallback_handler(
     (axum::http::StatusCode::NOT_FOUND, format!("No route {}", uri))
 }
 
-async fn snaps_get_handler()
-    -> (axum::http::StatusCode, String) {
-    (axum::http::StatusCode::OK, "A list of snaps\n".to_string())
+async fn snaps_get_handler<S: SnapAppState>(
+    State(repo): State<S>,
+) -> (axum::http::StatusCode, axum::extract::Json<ApiResponse<Vec<SnapInfo>>>) {
+    let snaps = repo.get()
+        .iter()
+        .map(|x|
+            SnapInfo {
+                id: x.id().clone(),
+                message: x.message().clone()
+            }
+        )
+        .collect::<Vec<SnapInfo>>();
+    let response = ApiResponse { data: snaps };
+    (axum::http::StatusCode::OK, response.into())
 }
 
-async fn snaps_post_handler(
-    axum::extract::Json(payload): axum::extract::Json<CreateSnap>
+async fn snaps_post_handler<S: SnapAppState>(
+    State(mut repo): State<S>,
+    axum::extract::Json(payload): axum::extract::Json<CreateSnap>,
 ) -> (axum::http::StatusCode, axum::extract::Json<ApiResponse<SnapCreated>>) {
-    dbg!(&payload);
-    let payload = SnapCreated {id: "abc".to_string(), message: payload.message};
+    let snap = repo.post(payload.message).unwrap();
+    let payload = SnapCreated {id: snap.id().clone(), message: snap.message().clone()};
     let response = ApiResponse { data: payload };
     (axum::http::StatusCode::CREATED, response.into())
 }

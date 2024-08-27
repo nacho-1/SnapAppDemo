@@ -1,10 +1,13 @@
 use std::env;
 
 mod router;
+mod state;
+mod models;
 
 #[tokio::main]
 pub async fn main() {
-    let app = router::get_router();
+    let state = state::MockSnapRepository::new();
+    let app = router::get_router().with_state(state);
 
     let mut addr = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     addr.insert_str(0, "0.0.0.0:");
