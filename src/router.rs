@@ -1,5 +1,5 @@
 use axum::routing::get;
-use axum::extract::State;
+use axum::extract::{State, Json};
 use crate::state::SnapAppState;
 
 #[derive(Debug, serde::Serialize)]
@@ -49,7 +49,7 @@ async fn fallback_handler(
 /// of snaps in JSON format.
 async fn snaps_get_handler<S: SnapAppState>(
     State(repo): State<S>,
-) -> (axum::http::StatusCode, axum::extract::Json<ApiResponse<Vec<SnapInfo>>>) {
+) -> impl axum::response::IntoResponse {
     let snaps = repo.get()
         .iter()
         .map(|x|
@@ -60,7 +60,7 @@ async fn snaps_get_handler<S: SnapAppState>(
         )
         .collect::<Vec<SnapInfo>>();
     let response = ApiResponse { data: snaps };
-    (axum::http::StatusCode::OK, response.into())
+    (axum::http::StatusCode::OK, Json::from(response))
 }
 
 /// axum handler for "POST /snaps" which creates a new
@@ -69,9 +69,9 @@ async fn snaps_get_handler<S: SnapAppState>(
 async fn snaps_post_handler<S: SnapAppState>(
     State(mut repo): State<S>,
     axum::extract::Json(payload): axum::extract::Json<CreateSnap>,
-) -> (axum::http::StatusCode, axum::extract::Json<ApiResponse<SnapCreated>>) {
+) -> impl axum::response::IntoResponse {
     let snap = repo.post(payload.message).unwrap();
     let payload = SnapCreated {id: snap.id().clone(), message: snap.message().clone()};
     let response = ApiResponse { data: payload };
-    (axum::http::StatusCode::CREATED, response.into())
+    (axum::http::StatusCode::CREATED, Json::from(response))
 }
