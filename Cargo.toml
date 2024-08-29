@@ -19,3 +19,11 @@ serde_json = "1.0.127"
 
 # Date and time library for Rust.
 chrono = "0.4.38"
+
+[dev-dependencies]
+
+# Tower is a library of modular and reusable components for building robust networking clients and servers.
+tower = { version = "0.5.0", features = ["util"] }
+http-body-util = "0.1.2"
+
+
