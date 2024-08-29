@@ -1,8 +1,6 @@
-use std::env;
+use snap_app_demo::{router, state};
 
-mod router;
-mod state;
-mod models;
+use std::env;
 
 #[tokio::main]
 pub async fn main() {
