@@ -1,10 +1,21 @@
-use axum::routing::get;
-use axum::extract::{State, Json};
+use axum::{
+    routing,
+    extract::{State, Json},
+    http::{header, StatusCode},
+    response::IntoResponse,
+};
 use crate::state::SnapAppState;
 
 #[derive(Debug, serde::Serialize)]
 struct ApiResponse<T: serde::Serialize> {
     data: T,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ProblemResponse {
+    title: Option<String>,
+    status: Option<String>,
+    detail: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -32,7 +43,7 @@ pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Ro
         )
         .route(
             "/snaps",
-            get(snaps_get_handler::<S>)
+            routing::get(snaps_get_handler::<S>)
                 .post(snaps_post_handler::<S>)
         )
 }
@@ -41,15 +52,15 @@ pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Ro
 /// This implementation returns HTTP status code Not Found (404).
 async fn fallback_handler(
     uri: axum::http::Uri
-) -> impl axum::response::IntoResponse {
-    (axum::http::StatusCode::NOT_FOUND, format!("No route {}", uri))
+) -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, format!("No route {}", uri))
 }
 
 /// axum handler for "GET /snaps" which return a list
 /// of snaps in JSON format.
 async fn snaps_get_handler<S: SnapAppState>(
     State(repo): State<S>,
-) -> impl axum::response::IntoResponse {
+) -> impl IntoResponse {
     let snaps = repo.get()
         .iter()
         .map(|x|
@@ -60,7 +71,7 @@ async fn snaps_get_handler<S: SnapAppState>(
         )
         .collect::<Vec<SnapInfo>>();
     let response = ApiResponse { data: snaps };
-    (axum::http::StatusCode::OK, Json::from(response))
+    (StatusCode::OK, Json::from(response))
 }
 
 /// axum handler for "POST /snaps" which creates a new
@@ -68,10 +79,26 @@ async fn snaps_get_handler<S: SnapAppState>(
 /// new snap alongside the status code.
 async fn snaps_post_handler<S: SnapAppState>(
     State(mut repo): State<S>,
-    axum::extract::Json(payload): axum::extract::Json<CreateSnap>,
-) -> impl axum::response::IntoResponse {
-    let snap = repo.post(payload.message).unwrap();
-    let payload = SnapCreated {id: snap.id().clone(), message: snap.message().clone()};
-    let response = ApiResponse { data: payload };
-    (axum::http::StatusCode::CREATED, Json::from(response))
+    Json(payload): Json<CreateSnap>,
+) -> impl IntoResponse {
+    match repo.post(&payload.message)  {
+        Ok(snap) => {
+            let payload = SnapCreated {id: snap.id().clone(), message: snap.message().clone()};
+            let response = ApiResponse { data: payload };
+            (StatusCode::CREATED, Json::from(response)).into_response()
+        },
+        Err(_) => {
+            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let response = ProblemResponse {
+                title: Some("Error generating snap ID.".to_string()),
+                status: Some(status.to_string()),
+                detail: Some("ID generated collision with an already existing one.".to_string())
+            };
+            (
+                status,
+                [(header::CONTENT_TYPE, "application/problem+json")],
+                Json::from(response)
+            ).into_response()
+        }
+    }
 }

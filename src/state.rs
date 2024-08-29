@@ -11,7 +11,7 @@ pub trait SnapAppState {
     /// ID of the snap will be random.
     /// Returns a copy of the snap on success,
     /// or an error if it can't create it.
-    fn post(&mut self, message: String) -> Result<Snap, SnapCreationError>;
+    fn post(&mut self, message: &str) -> Result<Snap, SnapCreationError>;
 
     /// Return a vector with the copy of all snaps
     /// at the time, ordered from the most recent to the oldest.
@@ -42,12 +42,12 @@ impl MockSnapRepository {
 }
 
 impl SnapAppState for MockSnapRepository {
-    fn post(&mut self, message: String) -> Result<Snap, SnapCreationError> {
+    fn post(&mut self, message: &str) -> Result<Snap, SnapCreationError> {
         let mut snaps = self.snaps_mtx
             .lock()
             .unwrap();
 
-        let snap = Snap::new(message);
+        let snap = Snap::new(String::from(message));
 
         if snaps.contains_key(snap.id()) {
             return Err(SnapCreationError::IdCollisionError)
@@ -86,19 +86,19 @@ mod mock_repo_test {
         let mut repo = MockSnapRepository::new();
         assert_eq!(repo.snap_count(), 0);
 
-        repo.post("A".to_string()).unwrap();
+        repo.post("A").unwrap();
         assert_eq!(repo.snap_count(), 1);
 
-        repo.post("B".to_string()).unwrap();
-        repo.post("C".to_string()).unwrap();
+        repo.post("B").unwrap();
+        repo.post("C").unwrap();
         assert_eq!(repo.snap_count(), 3);
     }
 
     #[test]
     fn get_snaps_is_sorted() {
         let mut repo = MockSnapRepository::new();
-        let snap_a = repo.post("A".to_string()).unwrap();
-        let snap_b = repo.post("B".to_string()).unwrap();
+        let snap_a = repo.post("A").unwrap();
+        let snap_b = repo.post("B").unwrap();
 
         assert!(snap_a.timestamp() <= snap_b.timestamp());
         assert_ne!(snap_a.id(), snap_b.id());
