@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 
 # Web framework that focuses on ergonomics and modularity.
-axum = "~0.7.0"
+axum = { version = "~0.7.0", features = ["tracing"] }
 
 # Event-driven, non-blocking I/O platform.
 tokio = { version = "~1.39.3", features = ["full"] }
@@ -26,6 +26,15 @@ uuid = { version = "1.10.0", features = [
     "fast-rng",         # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics",# Enable better diagnostics for compile-time UUIDs
 ] }
+
+# HTTP-specific middleware and utilities built on top of tower.
+tower-http = { version = "0.5.2", features = ["trace"] }
+
+# Application-level tracing for Rust.
+tracing = "0.1"
+
+# Utilities for implementing and composing tracing subscribers.
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 
