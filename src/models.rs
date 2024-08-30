@@ -1,5 +1,3 @@
-use chrono::Utc;
-
 #[derive(Debug, Clone)]
 pub struct Snap {
     id: String,
@@ -30,7 +28,7 @@ impl Snap {
     }
 
     /// Getter for the snap timestamp.
-    pub fn timestamp(&self) -> &chrono::DateTime<Utc> {
+    pub fn timestamp(&self) -> &chrono::DateTime<chrono::Utc> {
         &self.timestamp
     }
 }
