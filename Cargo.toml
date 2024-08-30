@@ -24,6 +24,10 @@ chrono = "0.4.38"
 
 # Tower is a library of modular and reusable components for building robust networking clients and servers.
 tower = { version = "0.5.0", features = ["util"] }
+
 http-body-util = "0.1.2"
 
+# A fast and correct HTTP library.
+hyper = { version = "1.4.1", features = ["full"] }
 
+hyper-util = { version = "0.1", features = ["client", "http1", "client-legacy"] }
