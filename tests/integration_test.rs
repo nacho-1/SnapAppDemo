@@ -8,12 +8,14 @@ use serde_json::{json, Value};
 use tower::ServiceExt;
 use http_body_util::BodyExt;
 use tokio::net::TcpListener;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn post_snap_logic() {
     let state = state::MockSnapRepository::new();
     let app = router::get_router().with_state(state);
 
+    let message = "Test Snap";
     let response = app
         .oneshot(
             Request::builder()
@@ -22,7 +24,7 @@ async fn post_snap_logic() {
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&json!({
-                        "message": "Test Snap",
+                        "message": message,
                     })).unwrap()
                 ))
                 .unwrap(),
@@ -35,7 +37,10 @@ async fn post_snap_logic() {
         .unwrap()
         .to_bytes();
     let body: Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(body["data"]["message"], json!("Test Snap"));
+    assert_eq!(body["data"]["message"], json!(message));
+    // Test that ID is a valid UUID.
+    let id = body["data"]["id"].as_str().unwrap();
+    assert!(Uuid::parse_str(id).is_ok());
 }
 
 #[tokio::test]
@@ -58,6 +63,7 @@ async fn post_snap() {
         hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new())
             .build_http();
 
+    let message = "Another test";
     let response = client
         .request(
             Request::builder()
@@ -66,7 +72,7 @@ async fn post_snap() {
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&json!({
-                        "message": "Test Snap",
+                        "message": message,
                     })).unwrap()
                 ))
                 .unwrap(),
@@ -79,7 +85,9 @@ async fn post_snap() {
         .unwrap()
         .to_bytes();
     let body: Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(body["data"]["message"], json!("Test Snap"));
+    assert_eq!(body["data"]["message"], json!(message));
+    let id = body["data"]["id"].as_str().unwrap();
+    assert!(Uuid::parse_str(id).is_ok());
 }
 
 #[tokio::test]

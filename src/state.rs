@@ -49,7 +49,7 @@ impl SnapAppState for MockSnapRepository {
 
         let snap = Snap::new(String::from(message));
 
-        if snaps.contains_key(snap.id()) {
+        if snaps.contains_key(&snap.id()) {
             return Err(SnapCreationError::IdCollisionError)
         }
 

@@ -65,8 +65,8 @@ async fn snaps_get_handler<S: SnapAppState>(
         .iter()
         .map(|x|
             SnapInfo {
-                id: x.id().clone(),
-                message: x.message().clone()
+                id: x.id(),
+                message: x.message().to_string()
             }
         )
         .collect::<Vec<SnapInfo>>();
@@ -83,7 +83,10 @@ async fn snaps_post_handler<S: SnapAppState>(
 ) -> impl IntoResponse {
     match repo.post(&payload.message)  {
         Ok(snap) => {
-            let payload = SnapCreated {id: snap.id().clone(), message: snap.message().clone()};
+            let payload = SnapCreated {
+                id: snap.id(),
+                message: snap.message().to_string()
+            };
             let response = ApiResponse { data: payload };
             (StatusCode::CREATED, Json::from(response)).into_response()
         },
