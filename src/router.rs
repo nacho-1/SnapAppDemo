@@ -42,8 +42,8 @@ struct SnapInfo {
     message: String,
 }
 
-/// Instantiate a router for the app needing a state of type <S>.
-/// To use it, the method <.with_state()> must be called on it.
+/// Instantiate a router for the app needing a state of type [S].
+/// To use it, the method [axum::Router<S>::with_state] must be called on it.
 pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Router<S> {
     axum::Router::new()
         .fallback(
@@ -111,7 +111,7 @@ async fn snaps_post_handler<S: SnapAppState>(
     }
 }
 
-/// Parse SnapConnectionError into an RFC 7807 compliant error response.
+/// Parse [SnapConnectionError] into an RFC 7807 compliant error response.
 fn map_snap_creation_error(_error: SnapCreationError) -> impl IntoResponse {
     let status = StatusCode::INTERNAL_SERVER_ERROR;
     let response = ProblemResponse {
@@ -127,7 +127,7 @@ fn map_snap_creation_error(_error: SnapCreationError) -> impl IntoResponse {
     )
 }
 
-/// Parse JsonRejection into an RFC 7807 compliant error response.
+/// Parse [JsonRejection] into an RFC 7807 compliant error response.
 fn handle_bad_json(rejection: &JsonRejection) -> impl IntoResponse {
     let status = StatusCode::BAD_REQUEST;
     let response = ProblemResponse {
