@@ -8,7 +8,7 @@ use axum::{
     http::{header, StatusCode},
     response::IntoResponse,
 };
-use crate::state::SnapAppState;
+use crate::state::{SnapAppState, SnapCreationError};
 
 #[derive(Debug, serde::Serialize)]
 struct ApiResponse<T: serde::Serialize> {
@@ -100,19 +100,8 @@ async fn snaps_post_handler<S: SnapAppState>(
                     let response = ApiResponse { data: payload };
                     (StatusCode::CREATED, Json::from(response)).into_response()
                 },
-                Err(_) => {
-                    let status = StatusCode::INTERNAL_SERVER_ERROR;
-                    let response = ProblemResponse {
-                        uri: None,
-                        title: Some("Unknown error".to_string()),
-                        status: Some(status.to_string()),
-                        detail: Some("Can't determine error cause".to_string())
-                    };
-                    (
-                        status,
-                        [(header::CONTENT_TYPE, "application/problem+json")],
-                        Json::from(response)
-                    ).into_response()
+                Err(e) => {
+                    map_snap_creation_error(e).into_response()
                 }
             }
         },
@@ -120,6 +109,22 @@ async fn snaps_post_handler<S: SnapAppState>(
             handle_bad_json(&rejection).into_response()
         }
     }
+}
+
+/// Parse SnapConnectionError into an RFC 7807 compliant error response.
+fn map_snap_creation_error(_error: SnapCreationError) -> impl IntoResponse {
+    let status = StatusCode::INTERNAL_SERVER_ERROR;
+    let response = ProblemResponse {
+        uri: None,
+        title: Some("Unknown error".to_string()),
+        status: Some(status.to_string()),
+        detail: Some("Can't determine error cause".to_string())
+    };
+    (
+        status,
+        [(header::CONTENT_TYPE, "application/problem+json")],
+        Json::from(response)
+    )
 }
 
 /// Parse JsonRejection into an RFC 7807 compliant error response.
