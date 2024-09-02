@@ -197,3 +197,171 @@ async fn get_zero_snaps() {
     let body: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(body["data"].as_array().unwrap().len(), 0);
 }
+
+#[tokio::test]
+async fn post_invalid_request_no_message_field() {
+    let state = state::MockSnapRepository::new();
+    let app = router::get_router().with_state(state);
+
+    let listener = TcpListener::bind("localhost:0")
+        .await
+        .unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    // Run the server in a thread.
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    // Create a client to communicate with the server.
+    let client =
+        hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new())
+            .build_http();
+
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{addr}/snaps"))
+                .header("Content-Type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "random_field": "value",
+                    })).unwrap()
+                ))
+                .unwrap(),
+        ).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let body: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(body["title"], json!("Problem Parsing Json"));
+}
+
+#[tokio::test]
+async fn post_invalid_request_empty_json() {
+    let state = state::MockSnapRepository::new();
+    let app = router::get_router().with_state(state);
+
+    let listener = TcpListener::bind("localhost:0")
+        .await
+        .unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    // Run the server in a thread.
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    // Create a client to communicate with the server.
+    let client =
+        hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new())
+            .build_http();
+
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{addr}/snaps"))
+                .header("Content-Type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({})).unwrap()
+                ))
+                .unwrap(),
+        ).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let body: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(body["title"], json!("Problem Parsing Json"));
+}
+
+#[tokio::test]
+async fn post_invalid_request_empty_body() {
+    let state = state::MockSnapRepository::new();
+    let app = router::get_router().with_state(state);
+
+    let listener = TcpListener::bind("localhost:0")
+        .await
+        .unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    // Run the server in a thread.
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    // Create a client to communicate with the server.
+    let client =
+        hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new())
+            .build_http();
+
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{addr}/snaps"))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        ).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let body: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(body["title"], json!("Problem Parsing Json"));
+}
+
+#[tokio::test]
+async fn post_invalid_request_missing_header() {
+    let state = state::MockSnapRepository::new();
+    let app = router::get_router().with_state(state);
+
+    let listener = TcpListener::bind("localhost:0")
+        .await
+        .unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    // Run the server in a thread.
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    // Create a client to communicate with the server.
+    let client =
+        hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new())
+            .build_http();
+
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{addr}/snaps"))
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "message": "Test Snap",
+                    })).unwrap())
+                ).unwrap(),
+        ).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.into_body()
+        .collect()
+        .await
+        .unwrap()
+        .to_bytes();
+    let body: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(body["title"], json!("Problem Parsing Json"));
+}

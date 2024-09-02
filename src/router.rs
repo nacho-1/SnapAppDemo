@@ -1,6 +1,10 @@
 use axum::{
     routing,
-    extract::{State, Json},
+    extract::{
+        State,
+        Json,
+        rejection::JsonRejection
+    },
     http::{header, StatusCode},
     response::IntoResponse,
 };
@@ -13,6 +17,8 @@ struct ApiResponse<T: serde::Serialize> {
 
 #[derive(Debug, serde::Serialize)]
 struct ProblemResponse {
+    #[serde(rename = "type")]
+    uri: Option<String>,
     title: Option<String>,
     status: Option<String>,
     detail: Option<String>,
@@ -79,29 +85,53 @@ async fn snaps_get_handler<S: SnapAppState>(
 /// new snap alongside the status code.
 async fn snaps_post_handler<S: SnapAppState>(
     State(mut repo): State<S>,
-    Json(payload): Json<CreateSnap>,
+    extractor: Result<Json<CreateSnap>, JsonRejection>,
 ) -> impl IntoResponse {
-    match repo.post(&payload.message)  {
-        Ok(snap) => {
-            let payload = SnapCreated {
-                id: snap.id(),
-                message: snap.message().to_string()
-            };
-            let response = ApiResponse { data: payload };
-            (StatusCode::CREATED, Json::from(response)).into_response()
+    match extractor {
+        Ok(Json(payload)) => {
+            match repo.post(&payload.message)  {
+                Ok(snap) => {
+                    let payload = SnapCreated {
+                        id: snap.id(),
+                        message: snap.message().to_string()
+                    };
+                    let response = ApiResponse { data: payload };
+                    (StatusCode::CREATED, Json::from(response)).into_response()
+                },
+                Err(_) => {
+                    let status = StatusCode::INTERNAL_SERVER_ERROR;
+                    let response = ProblemResponse {
+                        uri: None,
+                        title: Some("Unknown error".to_string()),
+                        status: Some(status.to_string()),
+                        detail: Some("Can't determine error cause".to_string())
+                    };
+                    (
+                        status,
+                        [(header::CONTENT_TYPE, "application/problem+json")],
+                        Json::from(response)
+                    ).into_response()
+                }
+            }
         },
-        Err(_) => {
-            let status = StatusCode::INTERNAL_SERVER_ERROR;
-            let response = ProblemResponse {
-                title: Some("Error generating snap ID.".to_string()),
-                status: Some(status.to_string()),
-                detail: Some("ID generated collision with an already existing one.".to_string())
-            };
-            (
-                status,
-                [(header::CONTENT_TYPE, "application/problem+json")],
-                Json::from(response)
-            ).into_response()
+        Err(rejection) => {
+            handle_bad_json(&rejection).into_response()
         }
     }
+}
+
+/// Parse JsonRejection into an RFC 7807 compliant error response.
+fn handle_bad_json(rejection: &JsonRejection) -> impl IntoResponse {
+    let status = StatusCode::BAD_REQUEST;
+    let response = ProblemResponse {
+        uri: None,
+        title: Some("Problem Parsing Json".to_string()),
+        status: Some(status.to_string()),
+        detail: Some(rejection.body_text()),
+    };
+    (
+        status,
+        [(header::CONTENT_TYPE, "application/problem+json")],
+        Json::from(response),
+    )
 }
