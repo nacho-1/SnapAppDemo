@@ -21,6 +21,7 @@ pub trait SnapAppState {
     fn snap_count(&self) -> usize;
 }
 
+// TODO: meant to be used for db errors.
 #[derive(Debug)]
 pub enum SnapCreationError {
     IdCollisionError,

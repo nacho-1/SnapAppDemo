@@ -8,6 +8,8 @@ use tracing_subscriber::{
 
 #[tokio::main]
 pub async fn main() {
+    // Subscriber for logs.
+    // See: https://docs.rs/tracing-core/0.1.32/tracing_core/subscriber/trait.Subscriber.html
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {

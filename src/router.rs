@@ -42,6 +42,8 @@ struct SnapInfo {
     message: String,
 }
 
+/// Instantiate a router for the app needing a state of type <S>.
+/// To use it, the method <.with_state()> must be called on it.
 pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Router<S> {
     axum::Router::new()
         .fallback(
