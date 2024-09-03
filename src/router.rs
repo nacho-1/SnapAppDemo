@@ -1,13 +1,8 @@
-use axum::{
-    routing,
-    extract::{
-        State,
-        Json,
-        rejection::JsonRejection
-    },
-    http::{header, StatusCode},
-    response::IntoResponse,
-};
+use axum::{routing, extract::{
+    State,
+    Json,
+    rejection::JsonRejection
+}, http::{header, StatusCode}, response::IntoResponse};
 use crate::state::{SnapAppState, SnapCreationError};
 
 #[derive(Debug, serde::Serialize)]
@@ -61,7 +56,18 @@ pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Ro
 async fn fallback_handler(
     uri: axum::http::Uri
 ) -> impl IntoResponse {
-    (StatusCode::NOT_FOUND, format!("No route {}", uri))
+    let status = StatusCode::NOT_FOUND;
+    let response = ProblemResponse {
+        uri: Some("about:blank".to_string()),
+        title: Some(format!("No route {}", uri)),
+        status: Some(status.to_string()),
+        detail: Some("Couldn't find the route".to_string()),
+    };
+    (
+        status,
+        [(header::CONTENT_TYPE, "application/problem+json")],
+        Json::from(response)
+    )
 }
 
 /// axum handler for "GET /snaps" which return a list
@@ -115,7 +121,7 @@ async fn snaps_post_handler<S: SnapAppState>(
 fn map_snap_creation_error(_error: SnapCreationError) -> impl IntoResponse {
     let status = StatusCode::INTERNAL_SERVER_ERROR;
     let response = ProblemResponse {
-        uri: None,
+        uri: Some("about:blank".to_string()),
         title: Some("Unknown error".to_string()),
         status: Some(status.to_string()),
         detail: Some("Can't determine error cause".to_string())
@@ -131,7 +137,7 @@ fn map_snap_creation_error(_error: SnapCreationError) -> impl IntoResponse {
 fn handle_bad_json(rejection: &JsonRejection) -> impl IntoResponse {
     let status = StatusCode::BAD_REQUEST;
     let response = ProblemResponse {
-        uri: None,
+        uri: Some("about:blank".to_string()),
         title: Some("Problem Parsing Json".to_string()),
         status: Some(status.to_string()),
         detail: Some(rejection.body_text()),
