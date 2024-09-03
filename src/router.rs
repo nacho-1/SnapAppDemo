@@ -1,8 +1,11 @@
-use axum::{routing, extract::{
+use axum::routing;
+use axum::extract::{
     State,
     Json,
     rejection::JsonRejection
-}, http::{header, StatusCode}, response::IntoResponse};
+};
+use axum::http::{header, StatusCode};
+use axum::response::IntoResponse;
 use crate::state::{SnapAppState, SnapCreationError};
 
 #[derive(Debug, serde::Serialize)]
@@ -47,7 +50,7 @@ pub fn get_router<S: SnapAppState + Clone + Send + Sync + 'static>() -> axum::Ro
         .route(
             "/snaps",
             routing::get(snaps_get_handler::<S>)
-                .post(snaps_post_handler::<S>)
+                .post(snaps_post_handler::<S>),
         )
 }
 
@@ -66,7 +69,7 @@ async fn fallback_handler(
     (
         status,
         [(header::CONTENT_TYPE, "application/problem+json")],
-        Json::from(response)
+        Json::from(response),
     )
 }
 
@@ -80,7 +83,7 @@ async fn snaps_get_handler<S: SnapAppState>(
         .map(|x|
             SnapInfo {
                 id: x.id(),
-                message: x.message().to_string()
+                message: x.message().to_string(),
             }
         )
         .collect::<Vec<SnapInfo>>();
@@ -101,7 +104,7 @@ async fn snaps_post_handler<S: SnapAppState>(
                 Ok(snap) => {
                     let payload = SnapCreated {
                         id: snap.id(),
-                        message: snap.message().to_string()
+                        message: snap.message().to_string(),
                     };
                     let response = ApiResponse { data: payload };
                     (StatusCode::CREATED, Json::from(response)).into_response()
@@ -124,12 +127,12 @@ fn map_snap_creation_error(_error: SnapCreationError) -> impl IntoResponse {
         uri: Some("about:blank".to_string()),
         title: Some("Unknown error".to_string()),
         status: Some(status.to_string()),
-        detail: Some("Can't determine error cause".to_string())
+        detail: Some("Can't determine error cause".to_string()),
     };
     (
         status,
         [(header::CONTENT_TYPE, "application/problem+json")],
-        Json::from(response)
+        Json::from(response),
     )
 }
 
